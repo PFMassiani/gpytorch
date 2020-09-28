@@ -33,7 +33,7 @@ class ZeroLazyTensor(LazyTensor):
 
     def _get_indices(self, row_index, col_index, *batch_indices):
         new_size = _compute_getitem_size(self, batch_indices + (row_index, col_index))
-        return ZeroLazyTensor(*new_size)
+        return torch.zeros(*new_size, dtype=self.dtype, device=self.device)
 
     def _getitem(self, row_index, col_index, *batch_indices):
         new_size = _compute_getitem_size(self, batch_indices + (row_index, col_index))
