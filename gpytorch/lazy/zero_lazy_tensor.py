@@ -14,13 +14,13 @@ class ZeroLazyTensor(LazyTensor):
     """
 
     def __init__(self, *sizes, dtype=None, device=None):
-        if len(sizes) == 1 and (
-                torch.is_tensor(sizes[0])
-                or isinstance(sizes[0], torch.Size)
-        ):
-            sizes = sizes[0]
+        if len(sizes) == 1 and torch.is_tensor(sizes[0]):
+            device = sizes[0].device if device is None else device
+            sizes = sizes[0].to(device)
+        elif len(sizes) == 1 and isinstance(sizes[0], torch.Size):
+            sizes = torch.tensor(sizes[0], device=device)
         else:
-            sizes = torch.tensor(sizes)
+            sizes = torch.tensor(sizes, device=device)
         super(ZeroLazyTensor, self).__init__(sizes)
         self.sizes = list(sizes)
 
@@ -44,7 +44,7 @@ class ZeroLazyTensor(LazyTensor):
 
     def _getitem(self, row_index, col_index, *batch_indices):
         new_size = _compute_getitem_size(self, batch_indices + (row_index, col_index))
-        return ZeroLazyTensor(*new_size)
+        return ZeroLazyTensor(*new_size, dtype=self._dtype, device=self._device)
 
     def _matmul(self, rhs):
         rhs_size_ind = -2 if rhs.ndimension() > 1 else -1
@@ -150,7 +150,7 @@ class ZeroLazyTensor(LazyTensor):
 
     @cached
     def evaluate(self):
-        return torch.zeros(*self.sizes)
+        return torch.zeros(*self.sizes, dtype=self.dtype, device=self.device)
 
     def inv_matmul(self, right_tensor, left_tensor=None):
         raise RuntimeError("ZeroLazyTensors are not invertible!")
@@ -187,7 +187,7 @@ class ZeroLazyTensor(LazyTensor):
         sizes[dim1] = sizes[dim2]
         sizes[dim2] = tmp
 
-        return ZeroLazyTensor(*sizes)
+        return ZeroLazyTensor(*sizes, dtype=self.dtype, device=self.device)
 
     def __add__(self, other):
         return other
